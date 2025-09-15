@@ -1,0 +1,37 @@
+{
+  "name": "stark",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/leoleoleonid/Stark#readme",
+  "bugs": {
+    "url": "https://github.com/leoleoleonid/Stark/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leoleoleonid/Stark.git"
+  },
+  "license": "ISC",
+  "author": "leoleoleonid",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start:queueExercise": "ts-node queueExercise.ts",
+    "start:dmvExercise": "ts-node dmvExercise.ts",
+    "start:queue": "ts-node queueExercise.ts",
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "p-queue": "^7.4.1",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^18.15.0",
+    "@types/node-fetch": "^2.6.11",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  }
+}
