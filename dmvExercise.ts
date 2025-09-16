@@ -66,50 +66,73 @@
  * */
 
 
+// Sequence: 6 chars per cell, numbers first then letters.
+// We always enumerate numbers (faster counter) inside a block, and letters advance slowly
+// after the numeric range completes. Time and memory are O(1).
 
+/*
+EXPLANATION BY A SINGLE EXAMPLE
+Example: n = 1_000_005
+1) Find the block:
+   Boundaries (cumulative ends, see BOUNDARIES below):
+   Since C0 <= n < C1, we are in block BLOCK=1 (5 digits + 1 letter).
+   base = C0 = 1_000_000
 
+2) Offset inside the block:
+   offset = n - base = 1_000_005 - 1_000_000 = 5
+   W = 6 - BLOCK = 5, pow10W = 100_000
 
-const C = [
-    1_000_000,   // L=0: 10^6
-    3_600_000,   // L=1: 10^5*26
-    10_360_000,  // L=2: 10^4*26^2
-    27_936_000,  // L=3: 10^3*26^3
-    73_633_600,  // L=4: 10^2*26^4
-    192_447_360, // L=5: 10^1*26^5
-    501_363_136  // L=6: 26^6 (итого)
+3) Split offset into "digits" and "letters":
+   num = offset % 100_000 = 5           -> zero-left-pad to width 5 => "00005"
+   suf = Math.floor(offset / 100_000) = 0 -> letter index 0 => 'A'
+
+Result: "00005A"
+*/
+
+// BOUNDARIES[L] = cumulative count up to and including block L (exclusive upper bound for the next index check)
+const BOUNDARIES = [
+    1_000_000,   // BLOCK=0: end of pure digits block (10^6)
+    3_600_000,   // BLOCK=1: + 10^5 * 26
+    10_360_000,  // BLOCK=2: + 10^4 * 26^2
+    27_936_000,  // BLOCK=3: + 10^3 * 26^3
+    73_633_600,  // BLOCK=4: + 10^2 * 26^4
+    192_447_360, // BLOCK=5: + 10^1 * 26^5
+    501_363_136  // BLOCK=6: + 26^6 (total valid plates)
 ] as const;
 
 const POW10 = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000] as const;
 
+// Static map from number -> letter
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
 export function nthPlate(n: number): string {
-    if (!Number.isInteger(n) || n < 0 || n >= C[6]) {
-        throw new RangeError(`n должен быть целым в диапазоне [0, ${C[6] - 1}]`);
+    if (!Number.isInteger(n) || n < 0 || n >= BOUNDARIES[6]) {
+        throw new RangeError(`n must be an integer in [0, ${BOUNDARIES[6] - 1}]`);
     }
 
+    let BLOCK: number, base: number;
+    if (n < BOUNDARIES[0]) { BLOCK = 0; base = 0; }
+    else if (n < BOUNDARIES[1]) { BLOCK = 1; base = BOUNDARIES[0]; }
+    else if (n < BOUNDARIES[2]) { BLOCK = 2; base = BOUNDARIES[1]; }
+    else if (n < BOUNDARIES[3]) { BLOCK = 3; base = BOUNDARIES[2]; }
+    else if (n < BOUNDARIES[4]) { BLOCK = 4; base = BOUNDARIES[3]; }
+    else if (n < BOUNDARIES[5]) { BLOCK = 5; base = BOUNDARIES[4]; }
+    else { BLOCK = 6; base = BOUNDARIES[5]; }
 
-    let L: number, base: number;
-    if (n < C[0]) { L = 0; base = 0; }
-    else if (n < C[1]) { L = 1; base = C[0]; }
-    else if (n < C[2]) { L = 2; base = C[1]; }
-    else if (n < C[3]) { L = 3; base = C[2]; }
-    else if (n < C[4]) { L = 4; base = C[3]; }
-    else if (n < C[5]) { L = 5; base = C[4]; }
-    else { L = 6; base = C[5]; }
+    const W = 6 - BLOCK;            // number of digit positions
+    const off = n - base;       // offset inside block
+    const pow10W = POW10[W];    // 10^W
 
-    const W = 6 - L;             // длина числовой части
-    const off = n - base;        // смещение внутри блока
-    const pow10W = POW10[W];     // 10^W
-    const num = off % pow10W;    // цифры
-    let suf = Math.floor(off / pow10W); // индекс суффикса (база-26)
+    const num = off % pow10W;                  // fast-changing numeric part
+    let suf = Math.floor(off / pow10W);        // slow-changing letter suffix index
 
-    // Цифровая часть с ведущими нулями
     const numStr = W ? num.toString().padStart(W, "0") : "";
 
-    // Буквенная часть: A=0..Z=25, младший разряд справа
+    // Build the BLOCK letters from least significant to most significant
     const letters: string[] = [];
-    for (let i = 0; i < L; i++) {
-        const r = suf % 26;
-        letters.push(String.fromCharCode(65 + r)); // 65='A'
+    for (let i = 0; i < BLOCK; i++) {
+        const r = suf % 26;               // 0..25
+        letters.push(LETTERS[r]);         // map number -> letter
         suf = Math.floor(suf / 26);
     }
     letters.reverse();
@@ -117,15 +140,14 @@ export function nthPlate(n: number): string {
     return numStr + letters.join("");
 }
 
-
-
 function main(): void {
-  console.log("Hello from dmvExercise.ts!");
-  console.log(nthPlate(0));
-  console.log(nthPlate(999999));
-  console.log(nthPlate(1000000));
-  console.log(nthPlate(1000001));
-  console.log(nthPlate(501363135));
+    console.log(nthPlate(0)); // -> 000000
+    console.log(nthPlate(1_000_005)); // -> 00005A
+    console.log(nthPlate(999_999));   // -> 999999
+    console.log(nthPlate(1_000_000)); // -> 00000A
+    console.log(nthPlate(1_000_001)); // -> 00001A
+    console.log(nthPlate(501_363_135)); // -> ZZZZZZ
+    console.log(nthPlate(501_363_136)); // error
 }
 
 main();
